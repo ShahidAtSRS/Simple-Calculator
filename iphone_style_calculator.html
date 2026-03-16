@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iPhone Style Calculator</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      font-family: Arial, Helvetica, sans-serif;
+      padding: 24px;
+    }
+
+    .phone {
+      width: 100%;
+      max-width: 380px;
+      background: #000;
+      border-radius: 48px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .notch-bar {
+      width: 100px;
+      height: 6px;
+      margin: 0 auto 22px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .display {
+      height: 120px;
+      color: #fff;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-end;
+      font-size: 64px;
+      font-weight: 300;
+      padding: 0 10px 14px;
+      overflow: hidden;
+      word-break: break-all;
+      text-align: right;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    button {
+      border: none;
+      border-radius: 50%;
+      height: 74px;
+      font-size: 30px;
+      cursor: pointer;
+      transition: transform 0.08s ease, filter 0.15s ease;
+    }
+
+    button:active {
+      transform: scale(0.96);
+    }
+
+    .top {
+      background: #a5a5a5;
+      color: #000;
+    }
+
+    .number {
+      background: #333;
+      color: #fff;
+    }
+
+    .operator {
+      background: #ff9f0a;
+      color: #fff;
+    }
+
+    .operator.active {
+      background: #fff;
+      color: #ff9f0a;
+    }
+
+    .zero {
+      grid-column: span 2;
+      border-radius: 999px;
+      text-align: left;
+      padding-left: 28px;
+    }
+
+    .footer {
+      color: #666;
+      text-align: center;
+      font-size: 12px;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="phone">
+    <div class="notch-bar"></div>
+    <div id="display" class="display">0</div>
+
+    <div class="buttons">
+      <button class="top" data-value="AC">AC</button>
+      <button class="top" data-value="sign">+/-</button>
+      <button class="top" data-value="percent">%</button>
+      <button class="operator" data-value="÷">÷</button>
+
+      <button class="number" data-value="7">7</button>
+      <button class="number" data-value="8">8</button>
+      <button class="number" data-value="9">9</button>
+      <button class="operator" data-value="×">×</button>
+
+      <button class="number" data-value="4">4</button>
+      <button class="number" data-value="5">5</button>
+      <button class="number" data-value="6">6</button>
+      <button class="operator" data-value="−">−</button>
+
+      <button class="number" data-value="1">1</button>
+      <button class="number" data-value="2">2</button>
+      <button class="number" data-value="3">3</button>
+      <button class="operator" data-value="+">+</button>
+
+      <button class="number zero" data-value="0">0</button>
+      <button class="number" data-value=".">.</button>
+      <button class="operator" data-value="=">=</button>
+    </div>
+
+    <div class="footer">iPhone-style calculator</div>
+  </div>
+
+  <script>
+    const display = document.getElementById('display');
+    const buttons = document.querySelectorAll('button');
+    const operatorButtons = document.querySelectorAll('.operator');
+
+    let current = '0';
+    let previous = null;
+    let operator = null;
+    let waitingForNext = false;
+
+    function updateDisplay(value) {
+      display.textContent = value;
+    }
+
+    function clearActiveOperators() {
+      operatorButtons.forEach(btn => btn.classList.remove('active'));
+    }
+
+    function setActiveOperator(op) {
+      clearActiveOperators();
+      const activeBtn = document.querySelector(`.operator[data-value="${op}"]`);
+      if (activeBtn && op !== '=') {
+        activeBtn.classList.add('active');
+      }
+    }
+
+    function inputDigit(digit) {
+      if (waitingForNext) {
+        current = digit;
+        waitingForNext = false;
+      } else {
+        current = current === '0' ? digit : current + digit;
+      }
+      updateDisplay(current);
+    }
+
+    function inputDecimal() {
+      if (waitingForNext) {
+        current = '0.';
+        waitingForNext = false;
+      } else if (!current.includes('.')) {
+        current += '.';
+      }
+      updateDisplay(current);
+    }
+
+    function clearAll() {
+      current = '0';
+      previous = null;
+      operator = null;
+      waitingForNext = false;
+      clearActiveOperators();
+      updateDisplay(current);
+    }
+
+    function toggleSign() {
+      if (current === '0') return;
+      current = String(parseFloat(current) * -1);
+      updateDisplay(current);
+    }
+
+    function percent() {
+      current = String(parseFloat(current) / 100);
+      updateDisplay(current);
+    }
+
+    function compute(first, second, op) {
+      if (op === '+') return first + second;
+      if (op === '−') return first - second;
+      if (op === '×') return first * second;
+      if (op === '÷') return second === 0 ? 'Error' : first / second;
+      return second;
+    }
+
+    function formatResult(value) {
+      if (value === 'Error') return value;
+      const text = String(value);
+      return text.length <= 12 ? text : Number(value).toPrecision(8);
+    }
+
+    function handleOperator(nextOperator) {
+      const inputValue = parseFloat(current);
+
+      if (previous === null) {
+        previous = inputValue;
+      } else if (operator && !waitingForNext) {
+        const result = compute(previous, inputValue, operator);
+        current = formatResult(result);
+        updateDisplay(current);
+        previous = result === 'Error' ? null : Number(result);
+      }
+
+      operator = nextOperator;
+      waitingForNext = true;
+      setActiveOperator(nextOperator);
+    }
+
+    function handleEquals() {
+      if (operator === null || previous === null) return;
+
+      const inputValue = parseFloat(current);
+      const result = compute(previous, inputValue, operator);
+      current = formatResult(result);
+      updateDisplay(current);
+      previous = result === 'Error' ? null : Number(result);
+      operator = null;
+      waitingForNext = true;
+      clearActiveOperators();
+    }
+
+    buttons.forEach(button => {
+      button.addEventListener('click', () => {
+        const value = button.dataset.value;
+
+        if (!isNaN(value)) {
+          inputDigit(value);
+          return;
+        }
+
+        if (value === '.') {
+          inputDecimal();
+          return;
+        }
+
+        if (value === 'AC') {
+          clearAll();
+          return;
+        }
+
+        if (value === 'sign') {
+          toggleSign();
+          return;
+        }
+
+        if (value === 'percent') {
+          percent();
+          return;
+        }
+
+        if (value === '=') {
+          handleEquals();
+          return;
+        }
+
+        handleOperator(value);
+      });
+    });
+  </script>
+</body>
+</html>
